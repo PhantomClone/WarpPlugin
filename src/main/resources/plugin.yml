@@ -1,0 +1,8 @@
+name: WarpPlugin
+main: me.phantomclone.warpplugin.WarpPlugin
+author: PhantomClone
+version: ${version}
+description: A small warp plugin :)
+commands:
+  warp:
+    usage: "Benutzte: /warp <create/delete/teleport> [warpname]"

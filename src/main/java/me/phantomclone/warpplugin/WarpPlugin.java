@@ -1,0 +1,36 @@
+package me.phantomclone.warpplugin;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import me.phantomclone.warpplugin.injection.Autowire;
+import me.phantomclone.warpplugin.injection.Bean;
+import me.phantomclone.warpplugin.injection.PhoenixDependencyInjector;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public class WarpPlugin extends JavaPlugin implements PhoenixDependencyInjector {
+
+    private static final String DATASOURCE_PROPERTY = "datasource.properties";
+
+    @Autowire
+    private HikariDataSource dataSource;
+
+    @Override
+    public void onEnable() {
+        saveResource(DATASOURCE_PROPERTY, false);
+        saveResource(PHOENIX_DEPENDENCY_INJECTOR_CONFIG, false);
+        load(getDataFolder());
+    }
+
+    @Override
+    public void onDisable() {
+        dataSource.close();
+    }
+
+    @Bean
+    public HikariDataSource dataSource() {
+        HikariConfig hikariConfig = new HikariConfig(String.format("%s/%s", getDataFolder(), DATASOURCE_PROPERTY));
+
+        return new HikariDataSource(hikariConfig);
+    }
+
+}
