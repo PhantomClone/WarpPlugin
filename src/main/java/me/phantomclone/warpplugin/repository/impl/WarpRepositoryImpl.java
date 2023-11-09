@@ -28,6 +28,8 @@ public class WarpRepositoryImpl extends QueryFactory implements WarpRepository {
     private static final String SELECT_WARP_OF_UUID_AND_WARP_NAME = "SELECT warpname, worldname, x, y, z, yaw, pitch FROM warp WHERE playeruuid = ? AND warpname = ?";
     private static final String DELETE_WARP = "DELETE FROM warp WHERE playeruuid = ? AND warpname = ?";
 
+    private static final String ALLOWED_SQL_EXCEPTION = "ERROR: duplicate key value violates unique constraint \"warp_pkey\"";
+
     private final WarpPlugin plugin;
 
     public WarpRepositoryImpl(DataSource dataSource, WarpPlugin plugin) {
@@ -109,7 +111,7 @@ public class WarpRepositoryImpl extends QueryFactory implements WarpRepository {
     }
 
     private static void handleSQLException(SQLException sqlException) {
-       if (sqlException.getMessage().compareTo("ERROR: duplicate key value violates unique constraint \"warp_pkey\"") == 0) {
+        if (!sqlException.getMessage().startsWith(ALLOWED_SQL_EXCEPTION)) {
             sqlException.printStackTrace();
         }
     }
