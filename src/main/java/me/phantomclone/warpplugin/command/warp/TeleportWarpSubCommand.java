@@ -42,10 +42,12 @@ public class TeleportWarpSubCommand implements SubCommand<Player> {
 
     @Override
     public List<String> onTabComplete(Player sender, Command command, String label, String[] args) {
-        if (args.length == 1) {
+        if (args.length == 1 && "teleport".startsWith(args[0])) {
             return List.of("teleport");
-        } else if (args.length == 2) {
-            return List.copyOf(warpCache.getWarpNameCache(sender.getUniqueId()));
+        } else if (args.length == 2 && "teleport".equalsIgnoreCase(args[0])) {
+            return warpCache.getWarpNameCache(sender.getUniqueId()).stream()
+                    .filter(warpName -> warpName.startsWith(args[1]))
+                    .toList();
         }
 
         return List.of();

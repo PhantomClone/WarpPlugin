@@ -26,7 +26,7 @@ public class WarpCommand extends PhoenixCommand<Player> {
         }
 
         registerSubCommand(
-              new CreateWarpSubCommand(warpService),
+              new CreateWarpSubCommand(plugin, warpService),
               new DeleteWarpSubCommand(warpService, warpCache),
               new TeleportWarpSubCommand(plugin, warpService, warpCache),
               new ListWarpSubCommand(warpService)

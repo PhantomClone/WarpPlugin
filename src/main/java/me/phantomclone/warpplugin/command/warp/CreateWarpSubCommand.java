@@ -1,6 +1,7 @@
 package me.phantomclone.warpplugin.command.warp;
 
 import lombok.RequiredArgsConstructor;
+import me.phantomclone.warpplugin.WarpPlugin;
 import me.phantomclone.warpplugin.command.SubCommand;
 import me.phantomclone.warpplugin.domain.Warp;
 import me.phantomclone.warpplugin.service.WarpService;
@@ -10,6 +11,7 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,6 +21,7 @@ import static net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.pars
 @RequiredArgsConstructor
 public class CreateWarpSubCommand implements SubCommand<Player> {
 
+    private final WarpPlugin warpPlugin;
     private final WarpService warpService;
     private static final Pattern PATTERN = Pattern.compile("[^a-zA-Z0-9\\s]");
 
@@ -35,6 +38,15 @@ public class CreateWarpSubCommand implements SubCommand<Player> {
                 .ifPresentOrElse(player::sendMessage, () -> processCreateWarpCommand(player, warpName));
     }
 
+    @Override
+    public List<String> onTabComplete(Player sender, Command command, String label, String[] args) {
+        if (args.length == 1 && "create".startsWith(args[0])) {
+            return List.of("create");
+        }
+
+        return List.of();
+    }
+
     private void processCreateWarpCommand(Player player, String warpName) {
         Warp warp = new Warp().setPlayerUuid(player.getUniqueId())
                 .setWarpName(warpName)
@@ -45,18 +57,14 @@ public class CreateWarpSubCommand implements SubCommand<Player> {
         createWarp(warp, player);
     }
 
-
-    @Override
-    public List<String> onTabComplete(Player sender, Command command, String label, String[] args) {
-        if (args.length == 1) {
-            return List.of("create");
-        }
-
-        return List.of();
-    }
-
     private void createWarp(Warp warp, Player player) {
-        warpService.createWarp(warp).thenAccept(result -> sendResultOfWarpCreate(result, player, warp.getWarpName()));
+        warpService.createWarp(warp)
+                .exceptionally(throwable -> {
+                    warpPlugin.getLogger().log(Level.SEVERE, "Warp %s could not be stored! (PlayerName=%s)"
+                            .formatted(warp.getWarpName(), player.getName()), throwable);
+                    return false;
+                })
+                .thenAccept(result -> sendResultOfWarpCreate(result, player, warp.getWarpName()));
     }
 
     private void sendResultOfWarpCreate(boolean result, Player player, String warpName) {
@@ -86,7 +94,7 @@ public class CreateWarpSubCommand implements SubCommand<Player> {
 
         Matcher matcher = PATTERN.matcher(warpName);
         if (matcher.find()) {
-            return Optional.of(miniMessage().deserialize("<gray>Dein Warp <warpname> darf keine Sonderzeichen enthalten! (<sonderzeichen>) ",
+            return Optional.of(miniMessage().deserialize("<gray>Dein Warp <warpname> darf keine Sonderzeichen enthalten! (<sonderzeichen>)",
                     parsed("warpname", warpName), parsed("sonderzeichen", matcher.group())));
         }
 

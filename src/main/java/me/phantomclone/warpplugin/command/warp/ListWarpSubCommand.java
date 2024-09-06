@@ -33,7 +33,7 @@ public class ListWarpSubCommand implements SubCommand<Player> {
     }
 
     public  List<String> onTabComplete(Player sender, Command command, String label, String[] args) {
-        return args.length == 1 ? List.of("list") : List.of();
+        return args.length == 1 && "list".startsWith(args[0]) ? List.of("list") : List.of();
     }
 
     private void sendPlayerWarps(Player player, List<Warp> warpList) {
@@ -58,7 +58,7 @@ public class ListWarpSubCommand implements SubCommand<Player> {
     private static List<Component> getMessage(List<Warp> warpList) {
         return warpList.stream()
                 .map(Warp::getWarpName)
-                .map(warpname -> miniMessage().deserialize(SINGLE_WARP_TEXT, parsed("warpname", warpname)))
+                .map(warpName -> miniMessage().deserialize(SINGLE_WARP_TEXT, parsed("warpname", warpName)))
                 .toList();
     }
 }
