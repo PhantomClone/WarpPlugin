@@ -6,6 +6,7 @@ import lombok.SneakyThrows;
 import me.phantomclone.warpplugin.WarpPlugin;
 import me.phantomclone.warpplugin.injection.Bean;
 import me.phantomclone.warpplugin.injection.PostConstructor;
+import org.apache.commons.io.FilenameUtils;
 import org.flywaydb.core.Flyway;
 
 import java.io.*;
@@ -17,6 +18,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 
 @Bean
@@ -43,12 +45,17 @@ public class FlywayHandler {
     }
 
     private void copySQLFileToPluginFolder() throws URISyntaxException, IOException {
+        File pluginSQLFolder = new File(new File(plugin.getDataFolder(), "db"), "migration");
+        if (!pluginSQLFolder.exists() && pluginSQLFolder.mkdirs()) {
+            plugin.getLogger().log(Level.INFO, "SQL Folder created.");
+        }
+
         URI uri = getUriOfSQLResourceFolder();
         FileSystem fileSystem = FileSystems.newFileSystem(uri, Collections.emptyMap(), null);
         try (Stream<Path> walk = Files.walk(fileSystem.getPath("db/migration/"))) {
             walk.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".sql"))
-                    .forEach(this::copyUrl);
+                    .forEach(path -> copyUrl(path, pluginSQLFolder));
         }
         fileSystem.close();
     }
@@ -64,8 +71,8 @@ public class FlywayHandler {
     }
 
     @SneakyThrows
-    private void copyUrl(Path path) {
-        File outputFile = new File(plugin.getDataFolder(), path.toString());
+    private void copyUrl(Path path, File pluginSQLFolder) {
+        File outputFile = new File(pluginSQLFolder, FilenameUtils.getName(path.toString()));
 
         if (!outputFile.exists()) {
             createFolderIfNotExist(outputFile);
@@ -84,12 +91,13 @@ public class FlywayHandler {
         }
     }
 
-    private static void createFolderIfNotExist(File outputFile) {
-        boolean ignore = outputFile.getParentFile().mkdirs();
+    private void createFolderIfNotExist(File outputFile) {
+        if (outputFile.getParentFile().mkdirs()) {
+            plugin.getLogger().log(Level.INFO, "Created folder '%s'", outputFile.getParentFile().getName());
+        }
     }
 
     private String getFlywayLocation() {
         return String.format(MIGRATION_FOLDER, plugin.getDataFolder().toString().replace('\\', '/'));
     }
-
 }

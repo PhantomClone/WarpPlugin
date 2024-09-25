@@ -18,24 +18,27 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public interface PhoenixDependencyInjector {
+public class PhoenixDependencyInjector {
 
-    String PHOENIX_DEPENDENCY_INJECTOR_CONFIG = "IDConfig.yml";
-    Set<Object> instances = new HashSet<>();
-    Set<Class<?>> beanClasses = new HashSet<>();
+    private final String injectorConfigFileName;
+    private final Set<Object> instances;
 
-    default void load(File configFolder) {
-        String packageName = getClass().getPackage().getName();
-        load(packageName, configFolder);
+    public PhoenixDependencyInjector(String injectorConfigFileName) {
+        this.injectorConfigFileName = injectorConfigFileName;
+        this.instances = new HashSet<>();
     }
 
-    default void load(String packageName, File configFolder) {
+    public void load(File configFolder, Object startInstance) {
+        String packageName = startInstance.getClass().getPackage().getName();
+        load(packageName, configFolder, startInstance);
+    }
+
+    public void load(String packageName, File configFolder, Object startInstance) {
         Map<String, Object> config = loadConfig(configFolder);
 
-        instances.add(this);
+        instances.add(startInstance);
 
         Reflections reflections = scanPackages(packageName);
-        addBeanClasses(reflections);
 
         loadMethodBeans(reflections);
         loadTypBeans(reflections);
@@ -44,11 +47,8 @@ public interface PhoenixDependencyInjector {
         injectPostConstructor(reflections);
     }
 
-    private static void addBeanClasses(Reflections reflections) {
-        beanClasses.addAll(reflections.getTypesAnnotatedWith(Bean.class));
-        reflections.getFieldsAnnotatedWith(Bean.class).stream()
-                .map(Field::getDeclaringClass)
-                .forEach(beanClasses::add);
+    public void clean() {
+        instances.clear();
     }
 
     private void injectPostConstructor(Reflections reflections) {
@@ -89,8 +89,7 @@ public interface PhoenixDependencyInjector {
                 .flatMap(Optional::stream)
                 .collect(Collectors.toCollection(ArrayList::new));
 
-                tryToLoadTypBeans(list);
-
+        tryToLoadTypBeans(list);
     }
 
     private void tryToLoadTypBeans(List<Constructor<?>> constructorList) {
@@ -210,7 +209,7 @@ public interface PhoenixDependencyInjector {
     }
 
     private Map<String, Object> loadConfig(File configFolder) {
-        Path path = Path.of(configFolder.getPath(), PHOENIX_DEPENDENCY_INJECTOR_CONFIG);
+        Path path = Path.of(configFolder.getPath(), injectorConfigFileName);
         Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
         try (FileInputStream fileInputStream = new FileInputStream(path.toFile())) {
             return yaml.load(fileInputStream);

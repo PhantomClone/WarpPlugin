@@ -7,9 +7,12 @@ import me.phantomclone.warpplugin.injection.Bean;
 import me.phantomclone.warpplugin.injection.PhoenixDependencyInjector;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class WarpPlugin extends JavaPlugin implements PhoenixDependencyInjector {
+public class WarpPlugin extends JavaPlugin {
 
     private static final String DATASOURCE_PROPERTY = "datasource.properties";
+    private static final String PHOENIX_DEPENDENCY_INJECTOR_CONFIG = "IDConfig.yml";
+
+    private PhoenixDependencyInjector phoenixDependencyInjector;
 
     @Autowire
     private HikariDataSource dataSource;
@@ -18,12 +21,17 @@ public class WarpPlugin extends JavaPlugin implements PhoenixDependencyInjector 
     public void onEnable() {
         saveResource(DATASOURCE_PROPERTY, false);
         saveResource(PHOENIX_DEPENDENCY_INJECTOR_CONFIG, false);
-        load(getDataFolder());
+
+        phoenixDependencyInjector = new PhoenixDependencyInjector(PHOENIX_DEPENDENCY_INJECTOR_CONFIG);
+
+        phoenixDependencyInjector.load(getDataFolder(), this);
     }
 
     @Override
     public void onDisable() {
         dataSource.close();
+
+        phoenixDependencyInjector.clean();
     }
 
     @Bean
