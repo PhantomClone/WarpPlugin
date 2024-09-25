@@ -4,6 +4,7 @@ plugins {
     id("java")
     id("com.gradleup.shadow") version "8.3.0"
     id("dev.s7a.gradle.minecraft.server") version "3.0.0"
+    id("com.github.spotbugs") version "6.0.22"
 }
 
 group = "me.phantomclone.warpplugin"
@@ -27,6 +28,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core:9.22.3")
 
     compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+    compileOnly("commons-io:commons-io:2.15.1")
 
     compileOnly("org.projectlombok:lombok:1.18.34")
     annotationProcessor("org.projectlombok:lombok:1.18.34")
@@ -34,8 +36,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.0")
     testImplementation("org.mockito:mockito-core:5.13.0")
     testImplementation("org.mockito:mockito-junit-jupiter:5.13.0")
+
     testImplementation("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.0")
+
+    spotbugsPlugins("com.h3xstream.findsecbugs:findsecbugs-plugin:1.13.0")
 }
 
 tasks.withType<JavaCompile> {
@@ -59,8 +64,6 @@ tasks {
     }
 }
 
-
-
 tasks.named<Test>("test") {
     useJUnitPlatform()
 
@@ -71,8 +74,17 @@ tasks.named<Test>("test") {
     }
 }
 
+tasks.register<Exec>("runCompose") {
+    workingDir = projectDir
+    commandLine("docker-compose", "-f", "compose.yaml", "up", "-d")
+    doLast {
+        println("Docker Compose wurde erfolgreich gestartet.")
+    }
+}
+
 task<LaunchMinecraftServerTask>("testPlugin") {
     dependsOn("shadowJar")
+    dependsOn("runCompose")
 
     doFirst {
         copy {
@@ -83,4 +95,20 @@ task<LaunchMinecraftServerTask>("testPlugin") {
 
     jarUrl.set(LaunchMinecraftServerTask.JarUrl.Paper("1.21.1"))
     agreeEula.set(true)
+}
+
+spotbugs {
+    excludeFilter.set(
+        file("${projectDir}/bug-filter.xml")
+    )
+}
+
+tasks.spotbugsMain {
+
+    reports.create("html") {
+        required = true
+
+        outputLocation = file("$buildDir/reports/spotbugs.html")
+        setStylesheet("fancy-hist.xsl")
+    }
 }
